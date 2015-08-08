@@ -1,0 +1,80 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>RLab Search</title>
+<link href="css/bootstrap.css" rel="stylesheet">
+
+<!-- Custom styles for this template -->
+<link href="css/main.css" rel="stylesheet">
+
+<link rel="stylesheet" href="css/font-awesome.min.css">
+<link rel="stylesheet" href="css/bootstrap-tagsinput.css">
+<link
+	href='http://fonts.googleapis.com/css?family=Lato:300,400,700,300italic,400italic'
+	rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Raleway:400,300,700'
+	rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Roboto:400,300,500'
+	rel='stylesheet' type='text/css'>
+<link rel="stylesheet"
+	href="https://code.jquery.com/ui/1.10.4/themes/smoothness/jquery-ui.css">
+<link rel="stylesheet" href="css/style.css">
+<script src="scripts/jquery.min.js"></script>
+<script type="text/javascript" src="scripts/smoothscroll.js"></script>
+<script src="https://code.jquery.com/ui/1.10.4/jquery-ui.min.js"></script>
+<script type="text/javascript" src="scripts/bootstrap-tagsinput.min.js"></script>
+</head>
+<body>
+	<div class="container">
+		<form role="form">
+			<div class="form-group gap">
+			<h3>Facilities</h3>
+				<input class="form-control input-lg" id="search" name="search"
+					placeholder="Search Facilities Here" data-role="tagsinput" autocomplete="off"
+					autofocus="autofocus" type="text">
+			</div>
+			<div class="form-group gap">
+			<h3>Price Range</h3>
+				<div class="col-sm-12">
+					<div id="slider"></div>
+				</div>
+
+			</div>
+			<div class="form-group gap">
+				<div class="col-sm-12">
+					<button type="button" class="btn btn-primary btn-lg" style="width:100%" ><span class="glyphicon glyphicon-search" aria-hidden="true"></span> Search</button>
+				</div>
+			</div>
+
+		</form>
+	</div>
+	<script src="scripts/bootstrap.js"></script>
+	<script>
+		$(document).ready(function() {
+			$("#slider").slider({
+				range : "min",
+				animate : true,
+				value : 1,
+				min : 10,
+				max : 1000,
+				step : 10,
+				slide : function(event, ui) {
+					update(1, ui.value); //changed
+				}
+			});
+			update();
+		});
+		function update(slider, val) {
+			//changed. Now, directly take value from ui.value. if not set (initial, will use current value.)
+			var $amount = slider == 1 ? val : 0;
+			$('#slider a')
+					.html(
+							'<label><span class="glyphicon glyphicon-chevron-left"></span> $'
+									+ $amount
+									+ ' <span class="glyphicon glyphicon-chevron-right"></span></label>');
+
+		}
+	</script>
+</body>
+</html>
