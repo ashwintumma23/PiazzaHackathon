@@ -10,6 +10,8 @@
 
 <link rel="stylesheet" href="css/font-awesome.min.css">
 <link rel="stylesheet" href="css/bootstrap-tagsinput.css">
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="scripts/biPartite.js"></script>
 <link
 	href='http://fonts.googleapis.com/css?family=Lato:300,400,700,300italic,400italic'
 	rel='stylesheet' type='text/css'>
@@ -24,38 +26,72 @@
 <script type="text/javascript" src="scripts/smoothscroll.js"></script>
 <script src="https://code.jquery.com/ui/1.10.4/jquery-ui.min.js"></script>
 <script type="text/javascript" src="scripts/bootstrap-tagsinput.min.js"></script>
+<script
+	src="https://maps.googleapis.com/maps/api/js?v=3.exp&signed_in=true&libraries=visualization"></script>
+
 </head>
+<!-- 
+Logo source : http://riit.smeal.psu.edu/images/research-computing-logo/@@images/4579350a-a74e-45d2-8e18-bf63b1955bd8.png -->>
 <body>
 	<div class="container">
-		<form role="form">
-			<div class="form-group gap">
+		<div class="row">
+			<div class="col-sm-6 col-md-4 col-xs-8 image-container">
+				<img src="images/logo.png"
+					style="height: 200px; margin-left: -15px;" />
+			</div>
+			<div class="col-sm-6 col-md-6 col-xs-12">
+
+				<h2>Research Lab Search</h2>
+			</div>
+		</div>
+	<form role="form">
+		<div class="form-group gap">
 			<h3>Facilities</h3>
-				<input class="form-control input-lg" id="search" name="search"
-					placeholder="Search Facilities Here" data-role="tagsinput" autocomplete="off"
-					autofocus="autofocus" type="text">
-			</div>
-			<div class="form-group gap">
+			<input class="form-control input-lg" id="search" name="search"
+				placeholder="Search Facilities Here" data-role="tagsinput"
+				autocomplete="off" autofocus="autofocus" type="text">
+		</div>
+		<div class="form-group gap">
 			<h3>Price Range</h3>
-				<div class="col-sm-12">
-					<div id="slider"></div>
-				</div>
-
-			</div>
-			<div class="form-group gap">
-				<div class="col-sm-12">
-					<button type="button" class="btn btn-primary btn-lg" style="width:100%" ><span class="glyphicon glyphicon-search" aria-hidden="true"></span> Search</button>
-				</div>
+			<div class="col-sm-12">
+				<div id="slider"></div>
 			</div>
 
-		</form>
+		</div>
+		<div class="form-group gap">
+			<div class="col-sm-12">
+				<button type="button" id="submit" class="btn btn-primary btn-lg"
+					style="width: 100%">
+					<span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+					Search
+				</button>
+			</div>
+		</div>
+	</form>
+	<hr>
+	<div class="row">
+		<div id="bpHolder" style="display: none;">
+			<h3>All available facilities</h3>
+			<div id="bipartite" style="font-size: 12px;"></div>
+			<hr>
+		</div>
+	</div>
+	<div class="row">
+		<div id="mapsHolder" style="display: none;">
+			<h3>Your Locations</h3>
+			<div id="maps"></div>
+			<hr>
+		</div>
+	</div>
 	</div>
 	<script src="scripts/bootstrap.js"></script>
 	<script>
+		var amt;
 		$(document).ready(function() {
 			$("#slider").slider({
 				range : "min",
 				animate : true,
-				value : 1,
+				value : 500,
 				min : 10,
 				max : 1000,
 				step : 10,
@@ -67,13 +103,129 @@
 		});
 		function update(slider, val) {
 			//changed. Now, directly take value from ui.value. if not set (initial, will use current value.)
-			var $amount = slider == 1 ? val : 0;
+			var $amount = slider == 1 ? val : 500;
+			amt = $amount;
 			$('#slider a')
 					.html(
 							'<label><span class="glyphicon glyphicon-chevron-left"></span> $'
 									+ $amount
 									+ ' <span class="glyphicon glyphicon-chevron-right"></span></label>');
 
+		}
+
+		$('#submit')
+				.click(
+						function() {
+							$("#bipartite").empty();
+							$("#maps").empty();
+							$("#mapsHolder").css("display", "");
+							$("#bpHolder").css("display", "");
+							$
+									.post(
+											'ResultsFetcher',
+											{
+												"tags" : $("#search").val(),
+												"price" : amt
+											},
+											function(resp) {
+												var results = jQuery
+														.parseJSON(resp);
+												var bpdata = new Array();
+												var mapdata = new Array();
+												for (var i = 0; i < results.response.docs.length; i++) {
+													for (var j = 0; j < results.response.docs[i].facility.length; j++) {
+														bpdata
+																.push([
+																		results.response.docs[i].name,
+																		results.response.docs[i].facility[j],
+																		1 ]);
+													}
+													mapdata
+															.push([
+																	results.response.docs[i].loc_lat,
+																	results.response.docs[i].loc_lon,
+																	results.response.docs[i].name,
+																	results.response.docs[i].email,
+																	results.response.docs[i].phone,
+																	results.response.docs[i].price ])
+												}
+												createBp(bpdata);
+												initializeMap(mapdata);
+												//alert(results);
+											}).fail(function() { // on failure
+										alert("Request failed.");
+									});
+						});
+
+		function createBp(sales_data) {
+			/* var sales_data=[
+			['Lite','CA',1],
+			['Small','CA',1],
+			['Medium','CA',1],
+			['Plus','CA',1],
+			['Grand','CA',1],
+			['Elite','CA',1],
+			['Lite','AZ',1],
+			['Grand','WV',1],
+			['Elite','WV',1]
+			];  */
+
+			var width = 3500, height = 1500, margin = {
+				b : 0,
+				t : 40,
+				l : 270,
+				r : 50
+			};
+
+			var svg = d3.select("#bipartite").append("svg")
+					.attr('width', width).attr('height',
+							(height + margin.b + margin.t)).append("g").attr(
+							"transform",
+							"translate(" + margin.l + "," + margin.t + ")");
+
+			var data = [ {
+				data : bP.partData(sales_data, 2),
+				id : 'Ashwin',
+				header : [ "Location", "Facility", "Results" ]
+			} ];
+
+			bP.draw(data, svg);
+		}
+
+		function initializeMap(mapdata) {
+			var mapOptions = {
+				zoom : 4,
+				center : new google.maps.LatLng(39.571822, -102.041015),
+				//tileSize : new google.maps.Size(256, 256),
+				rotateControl : false,
+				scrollwheel : false
+			};
+
+			map = new google.maps.Map(document.getElementById('maps'),
+					mapOptions);
+			for (var i = 0; i < mapdata.length; i++) {
+				// Create a lat/long object readable by Google
+
+				var marker = new google.maps.Marker({
+					position : new google.maps.LatLng(
+							parseFloat(mapdata[i][0]),
+							parseFloat(mapdata[i][1])),
+					map : map,
+					title : "Location : <b>" + mapdata[i][2] + "</b></br>"
+							+ "Email : " + mapdata[i][3] + "</br>" + "Phone : "
+							+ mapdata[i][4] + "</br>" + "Price : $"
+							+ +mapdata[i][5] + "</br>"
+				});
+				(function(marker, i) {
+					// add click event
+					google.maps.event.addListener(marker, 'click', function() {
+						infowindow = new google.maps.InfoWindow({
+							content : marker.title
+						});
+						infowindow.open(map, marker);
+					});
+				})(marker, i);
+			}
 		}
 	</script>
 </body>
